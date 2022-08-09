@@ -24,8 +24,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JTree;
 import javax.swing.SwingConstants;
+import javax.swing.tree.TreeModel;
 import javax.swing.JButton;
 
 public class WatchClient {
@@ -97,33 +100,19 @@ public class WatchClient {
 		}
 	}
 	
-	private File[] getAllDirs() {
-		File[] roots = File.listRoots();
+	private void getAllDirs() {
+		TreeModel model = new FileTreeModel(new File(System.getProperty("user.home")));
+		JTree tree = new JTree(model);
+		System.out.print(tree.getPathForRow(10).getLastPathComponent());
 		
-		for (int i = 0; i < roots.length; i++) {
-            System.out.print(roots[i].getPath() + " ");
-            walkingOnTheFileTree(roots[i].getPath());
-        }
-		return roots;
-	}
-	
-	private void walkingOnTheFileTree(String path) {
-		try {
-			Files.find(Paths.get(path),
-			           Integer.MAX_VALUE,
-			           (filePath, fileAttr) -> {
-						try {
-							return fileAttr.isRegularFile() && !Files.isHidden(filePath);
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							return fileAttr.isRegularFile();
-						}
-					})
-			        .forEach(System.out::println);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		// The JTree can get big, so allow it to scroll.
+	    JScrollPane scrollpane = new JScrollPane(tree);
+	    
+	    // Display it all in a window and make the window appear
+	    JFrame frame = new JFrame("FileTreeDemo");
+	    frame.getContentPane().add(scrollpane, "Center");
+	    frame.setSize(400,600);
+	    frame.setVisible(true);
 	}
 	
 	private void registerFolder(String path) {
