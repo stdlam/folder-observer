@@ -19,6 +19,10 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -38,6 +42,7 @@ public class WatchClient {
 	private JTextField textPort;
 	private JLabel lblStatus;
 	private JButton btnConnect;
+	private Hashtable<String, Thread> threadHolder = new Hashtable<String, Thread>();
 	
 	//establish socket connection to server
 	Socket socket;
@@ -63,29 +68,35 @@ public class WatchClient {
 			InetAddress host = InetAddress.getLocalHost();
 			String clientIP = host.getHostName();
 			socket = new Socket(ip, port);
-			//write to socket using ObjectOutputStream
-			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-	        lblStatus.setText("Sending request to Server...");
-	        oos.writeObject(clientIP);
-	        //read the server response message
-	        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+			String response;
 			try {
-				String message = (String) ois.readObject();
-				lblStatus.setText(message);
+				response = communicateServe(clientIP);
+				lblStatus.setText(response);
 				btnConnect.setText("Disconnect");
-				
 			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
+				e.printStackTrace();
 				showDialog(frame, "Connection Error", "Please try connect again");
 			}
-	        //close resources
-	        ois.close();
-	        oos.close();
+			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			showDialog(frame, "Connection Error", "Please try connect again");
 		}
         
+	}
+	
+	private String communicateServe(String message) throws IOException, ClassNotFoundException {
+		String response = "";
+		//write to socket using ObjectOutputStream
+		ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+        lblStatus.setText("Sending request to Server...");
+        oos.writeObject(message);
+        //read the server response message
+        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        response = (String) ois.readObject();
+        //close resources
+        ois.close();
+        oos.close();
+        return response;
 	}
 	
 	private void disconnect() {
@@ -100,10 +111,22 @@ public class WatchClient {
 		}
 	}
 	
-	private void getAllDirs() {
+	private void initFolderObersever() {
+		int defaultPosition = 33;
 		TreeModel model = new FileTreeModel(new File(System.getProperty("user.home")));
 		JTree tree = new JTree(model);
-		System.out.print(tree.getPathForRow(10).getLastPathComponent());
+		//System.out.print(tree.getPathForRow(defaultPosition).getLastPathComponent());
+		File file = new File(tree.getPathForRow(defaultPosition).getLastPathComponent().toString());
+		while (!file.isDirectory()) {
+			file = new File(tree.getPathForRow(++defaultPosition).getLastPathComponent().toString());
+		}
+		String parent = file.getParent();
+		System.out.println("current: " + file.getPath() + ", currentAbsolute: " + file.getAbsolutePath() + ", parent=" + parent);
+		// register parent path
+		registerFolder(parent, true);
+		// register current
+		registerFolder(file.getPath(), false);
+		
 		
 		// The JTree can get big, so allow it to scroll.
 	    JScrollPane scrollpane = new JScrollPane(tree);
@@ -115,50 +138,100 @@ public class WatchClient {
 	    frame.setVisible(true);
 	}
 	
-	private void registerFolder(String path) {
-		WatchService watcher;
-		try {
-			watcher = FileSystems.getDefault().newWatchService();
-			Path dir = Paths.get(path);
-	        dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE,
-	                StandardWatchEventKinds.ENTRY_MODIFY);
-	 
-	        System.out.println("Watch Service registered for dir: " + dir.getFileName());
-	 
-	        WatchKey key = null;
-	        while (true) {
-	            try {
-	                // System.out.println("Waiting for key to be signalled...");
-	                key = watcher.take();
-	            } catch (InterruptedException ex) {
-	                System.out.println("InterruptedException: " + ex.getMessage());
-	                return;
-	            }
-	 
-	            for (WatchEvent<?> event : key.pollEvents()) {
-	                // Retrieve the type of event by using the kind() method.
-	                WatchEvent.Kind<?> kind = event.kind();
-	                WatchEvent<Path> ev = (WatchEvent<Path>) event;
-	                Path fileName = ev.context();
-	                if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-	                    System.out.printf("A new file %s was created.%n", fileName.getFileName());
-	                } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-	                    System.out.printf("A file %s was modified.%n", fileName.getFileName());
-	                } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-	                    System.out.printf("A file %s was deleted.%n", fileName.getFileName());
-	                }
-	            }
-	 
-	            boolean valid = key.reset();
-	            if (!valid) {
-	                break;
-	            }
-	        }
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	private void registerFolder(String path, Boolean isParent) {
+		Runnable watchingRunnable = new Runnable() {
+
+			@Override
+			public void run() {
+				WatchService watcher;
+				boolean isParentWatching = isParent;
+				try {
+					watcher = FileSystems.getDefault().newWatchService();
+					Path dir = Paths.get(path);
+			        dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE,
+			                StandardWatchEventKinds.ENTRY_MODIFY);
+			 
+			        System.out.println("Watch Service registered for dir: " + dir.getFileName());
+			 
+			        WatchKey key = null;
+			        while (true) {
+			            try {
+			                // System.out.println("Waiting for key to be signalled...");
+			                key = watcher.take();
+			            } catch (InterruptedException ex) {
+			                System.out.println("InterruptedException: " + ex.getMessage());
+			                return;
+			            }
+			            
+			            String oldFileName = "";
+			            List<WatchEvent<?>> events = key.pollEvents();
+			            for (WatchEvent<?> event : events) {
+			                // Retrieve the type of event by using the kind() method.
+			                WatchEvent.Kind<?> kind = event.kind();
+			                WatchEvent<Path> ev = (WatchEvent<Path>) event;
+			                Path fileName = ev.context();
+			               
+			                if(isRenameFile(events)) {
+			                	WatchEvent<Path> delEv = (WatchEvent<Path>) events.get(1);
+			                	Path delFileNamePaths = delEv.context();
+			                	System.out.printf("A file %s was renamed to %s\n", delFileNamePaths, fileName.getFileName());
+			                	break;
+			                }
+			               
+			                if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+			                	if (isParentWatching == true) {
+			                		System.out.printf("A new file %s was created in parent\n", fileName.getFileName());
+			                	} else {
+			                		System.out.printf("A new file %s was created\n", fileName.getFileName());
+			                	}
+			                } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
+			                	if (isParentWatching == true) {
+			                		System.out.printf("A file %s was modified in parent\n", fileName.getFileName());
+			                	} else {
+			                		System.out.printf("A file %s was modified\n", fileName.getFileName());
+			                	}
+			                	
+			                } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+			                	if (isParentWatching == true) {
+			                		System.out.printf("A file %s was deleted in parent\n", fileName.getFileName());
+			                	} else {
+			                		System.out.printf("A file %s was deleted\n", fileName.getFileName());
+			                	}
+			                	
+			                }
+			            }
+			 
+			            boolean valid = key.reset();
+			            if (!valid) {
+			                break;
+			            }
+			        }
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+		};
+		
+		Thread thread = new Thread(watchingRunnable);
+		thread.start();
+		
+		interuptObservePath(path);
+		threadHolder.put(path, thread);
+	}
+	
+	private boolean isRenameFile(List<WatchEvent<?>> events) {
+		return events.size() == 2 
+				&& events.get(0).kind() == StandardWatchEventKinds.ENTRY_CREATE 
+				&& events.get(1).kind() == StandardWatchEventKinds.ENTRY_DELETE;
+	}
+	
+	private void interuptObservePath(String path) {
+		if (threadHolder.containsKey(path)) {
+			threadHolder.get(path).interrupt();
 		}
-        
+		
 	}
 	
 	private void showDialog(JFrame frame, String title, String content) {
@@ -194,7 +267,7 @@ public class WatchClient {
 	public WatchClient() {
 		initialize();
 		handleClickEvents();
-		getAllDirs();
+		initFolderObersever();
 		//registerFolder("/Users/lamnguyen/Documents/HCMUS/Java/folder-observer/FolderWatcher");
 	}
 
