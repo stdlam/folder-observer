@@ -1,23 +1,27 @@
 package main;
 
-public class ActionData {
-	long timestamp;
+import java.io.Serializable;
+
+public class ActionData implements Serializable {
+	String createAt;
 	String action;
 	String clientIP;
 	String message;
+	FileTreeModel folderTree;
 	
-	public ActionData(long timestamp, String action, String clientIP, String message) {
+	public ActionData(String createAt, String action, String clientIP, String message, FileTreeModel folderTree) {
 		super();
-		this.timestamp = timestamp;
+		this.createAt = createAt;
 		this.action = action;
 		this.clientIP = clientIP;
 		this.message = message;
+		this.folderTree = folderTree;
 	}
-	public long getTimestamp() {
-		return timestamp;
+	public String getCreateAt() {
+		return createAt;
 	}
-	public void setTimestamp(long timestamp) {
-		this.timestamp = timestamp;
+	public void setCreateAt(String createAt) {
+		this.createAt = createAt;
 	}
 	public String getAction() {
 		return action;
@@ -37,9 +41,15 @@ public class ActionData {
 	public void setMessage(String message) {
 		this.message = message;
 	}
+	public FileTreeModel getFolderTree() {
+		return folderTree;
+	}
+	public void setFolderTree(FileTreeModel folderTree) {
+		this.folderTree = folderTree;
+	}
 	@Override
 	public String toString() {
-		return "timestamp=" + timestamp + "|action=" + action + "|clientIP=" + clientIP + "|message=" + message;
+		return  String.format("%s,%s,%s,%s", createAt, action, clientIP, message);
 	}
 	
 	

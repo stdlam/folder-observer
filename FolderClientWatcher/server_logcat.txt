@@ -1,0 +1,2 @@
+2022-8-13 0:27:43:773,LOGIN,192.168.2.1,/Users/lamnguyen/aobservable
+2022-8-13 0:31:12:151,LOGIN,192.168.2.1,/Users/lamnguyen/aobservable

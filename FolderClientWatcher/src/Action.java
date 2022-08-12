@@ -1,4 +1,4 @@
-package main;
+
 
 public class Action {
 	public static final String CREATE = "CREATE";
@@ -6,6 +6,5 @@ public class Action {
 	public static final String MODIFY = "MODIFY";
 	public static final String DELETE = "DELETE";
 	public static final String LOGOUT = "LOGOUT";
-	public static final String LOGIN = "LOGIN";
-	public static final String FOLDER_TREE = "FOLDER_TREE";
+	public static final String LOGIN = "LOGOUT";
 }

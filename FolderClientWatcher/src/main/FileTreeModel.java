@@ -1,12 +1,13 @@
 package main;
 
 import java.io.File;
+import java.io.Serializable;
 
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 
-public class FileTreeModel implements TreeModel {
+public class FileTreeModel implements TreeModel, Serializable {
 	
 	protected File root;
 	public FileTreeModel(File root) { this.root = root; }

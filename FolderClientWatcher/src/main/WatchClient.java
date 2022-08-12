@@ -33,8 +33,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
+import javax.swing.RowFilter;
 import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import javax.swing.tree.TreeModel;
 import javax.swing.JButton;
 import javax.swing.JTable;
@@ -54,7 +59,12 @@ public class WatchClient {
 	//establish socket connection to server
 	private Socket socket;
 	private String ip;
-	private JTable tableLog;
+	private JTable tableLog = new JTable();
+	private TableRowSorter<TableModel> rowSorter;
+	private JTextField textFieldLogFilter;
+	private String currentPathObserving = "";
+	
+	private FileTreeModel folderModel = new FileTreeModel(new File(System.getProperty("user.home")));
 
 	/**
 	 * Launch the application.
@@ -93,7 +103,8 @@ public class WatchClient {
 			socket = new Socket(ip, port);
 			String response;
 			try {
-				response = communicateServe(this.ip);
+				ActionData message = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.LOGIN, this.ip, currentPathObserving, folderModel);
+				response = communicateServe(message);
 				lblStatus.setText(response);
 				btnConnect.setText("Disconnect");
 			} catch (ClassNotFoundException e) {
@@ -102,12 +113,13 @@ public class WatchClient {
 			}
 			
 		} catch (IOException e) {
-			showDialog(frame, "Connection Error", "Please try connect again");
+			e.printStackTrace();
+			showDialog(frame, "Cannot connect to server", e.getMessage());
 		}
         
 	}
 	
-	private String communicateServe(String message) throws IOException, ClassNotFoundException {
+	private String communicateServe(ActionData message) throws IOException, ClassNotFoundException {
 		String response = "";
 		//write to socket using ObjectOutputStream
 		ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
@@ -135,9 +147,8 @@ public class WatchClient {
 	}
 	
 	private void initFolderObersever() {
-		int defaultPosition = 57;
-		TreeModel model = new FileTreeModel(new File(System.getProperty("user.home")));
-		JTree tree = new JTree(model);
+		int defaultPosition = 15;
+		JTree tree = new JTree(folderModel);
 		//System.out.print(tree.getPathForRow(defaultPosition).getLastPathComponent());
 		File file = new File(tree.getPathForRow(defaultPosition).getLastPathComponent().toString());
 		while (!file.isDirectory()) {
@@ -145,20 +156,12 @@ public class WatchClient {
 		}
 		String parent = file.getParent();
 		System.out.println("current: " + file.getPath() + ", currentAbsolute: " + file.getAbsolutePath() + ", parent=" + parent);
+		currentPathObserving = file.getPath();
 		// register parent path
 		registerFolder(parent, true);
 		// register current
 		registerFolder(file.getPath(), false);
 		
-		
-		// The JTree can get big, so allow it to scroll.
-	    JScrollPane scrollpane = new JScrollPane(tree);
-	    
-	    // Display it all in a window and make the window appear
-	    JFrame frame = new JFrame("FileTreeDemo");
-	    frame.getContentPane().add(scrollpane, "Center");
-	    frame.setSize(400,600);
-	    frame.setVisible(true);
 	}
 	
 	private void registerFolder(String path, Boolean isParent) {
@@ -199,14 +202,14 @@ public class WatchClient {
 			                	Path delFileNamePaths = delEv.context();
 			                	String message = String.format("A file %s was renamed to %s\n", delFileNamePaths, fileName.getFileName());
 			                	System.out.println(message);
-			                	ActionData action = new ActionData(System.currentTimeMillis(), Action.RENAME, ip, message);
+			                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.RENAME, ip, message, null);
 			                	addRowLog(action);
 			                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	
 			                	if (isParentWatching) {
 									// if this is parent renamed, interrupt current thread and start new thread with new path
-			                		System.out.println("new path: " + livePath + "/" + fileName.getFileName().toString());
-			                		registerFolder(livePath + "/" + fileName.getFileName().toString(), false);
+			                		currentPathObserving = livePath + "/" + fileName.getFileName().toString();
+			                		registerFolder(currentPathObserving, false);
 			                		interruptObservePath(livePath + "/" + delFileNamePaths.getFileName().toString());
 								}
 			                	break;
@@ -218,7 +221,7 @@ public class WatchClient {
 			                	} else {
 			                		System.out.printf("A new file %s was created\n", fileName.getFileName());
 			                		String message = String.format("A new file %s was created\n", fileName.getFileName());
-				                	ActionData action = new ActionData(System.currentTimeMillis(), Action.CREATE, ip, message);
+				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.CREATE, ip, message, null);
 				                	addRowLog(action);
 				                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	}
@@ -228,7 +231,7 @@ public class WatchClient {
 			                	} else {
 			                		System.out.printf("A file %s was modified\n", fileName.getFileName());
 			                		String message = String.format("A file %s was modified\n", fileName.getFileName());
-				                	ActionData action = new ActionData(System.currentTimeMillis(), Action.MODIFY, ip, message);
+				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.MODIFY, ip, message, null);
 				                	addRowLog(action);
 				                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	}
@@ -239,7 +242,7 @@ public class WatchClient {
 			                	} else {
 			                		System.out.printf("A file %s was deleted\n", fileName.getFileName());
 			                		String message = String.format("A file %s was deleted\n", fileName.getFileName());
-				                	ActionData action = new ActionData(System.currentTimeMillis(), Action.DELETE, ip, message);
+				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.DELETE, ip, message, null);
 				                	addRowLog(action);
 				                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	}
@@ -313,6 +316,7 @@ public class WatchClient {
 	 */
 	public WatchClient() {
 		initialize();
+		setupFilterEvents();
 		handleClickEvents();
 		initFolderObersever();
 		initLogTable();
@@ -322,14 +326,46 @@ public class WatchClient {
 		String[] header = new String[] { "No.", "Time", "Action", "Description"};
 		tableModel.setColumnIdentifiers(header);
 		tableLog.setModel(tableModel);
+		rowSorter = new TableRowSorter<>(tableLog.getModel());
+		tableLog.setRowSorter(rowSorter);
+	}
+	
+	private void setupFilterEvents() {
+		textFieldLogFilter.getDocument().addDocumentListener(new DocumentListener() {
+			
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				String text = textFieldLogFilter.getText();
+				if (text.trim().length() == 0) {
+					rowSorter.setRowFilter(null);
+				} else {
+					rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+				}
+			}
+			
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				String text = textFieldLogFilter.getText();
+				if (text.trim().length() == 0) {
+					rowSorter.setRowFilter(null);
+				} else {
+					rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+				}
+			}
+			
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				
+			}
+		});
 	}
 	
 	private void addRowLog(ActionData action) {
 		int rowCount = tableModel.getRowCount();
-		tableModel.addRow(new Object[] { String.valueOf(++rowCount), millisecondToDate(action.timestamp), action.action, action.message });
+		tableModel.addRow(new Object[] { String.valueOf(++rowCount), action.createAt, action.action, action.message });
 	}
 	
-	private String millisecondToDate(long millis) {
+	private String convertMillisecondToDate(long millis) {
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTimeInMillis(millis);
 
@@ -384,14 +420,18 @@ public class WatchClient {
 		lblStatus.setBounds(254, 176, 184, 16);
 		frame.getContentPane().add(lblStatus);
 		
-		tableLog = new JTable();
-		frame.getContentPane().add(tableLog);
+		//frame.getContentPane().add(tableLog);
 		JScrollPane tableScroller = new JScrollPane(tableLog);
 		tableScroller.setBounds(6, 240, 701, 263);
 		frame.getContentPane().add(tableScroller);
 		
-		JLabel lblNewLabel_2 = new JLabel("Logcat");
-		lblNewLabel_2.setBounds(6, 220, 61, 16);
+		JLabel lblNewLabel_2 = new JLabel("Logcat Filter");
+		lblNewLabel_2.setBounds(6, 214, 88, 16);
 		frame.getContentPane().add(lblNewLabel_2);
+		
+		textFieldLogFilter = new JTextField();
+		textFieldLogFilter.setBounds(87, 209, 301, 26);
+		frame.getContentPane().add(textFieldLogFilter);
+		textFieldLogFilter.setColumns(10);
 	}
 }
