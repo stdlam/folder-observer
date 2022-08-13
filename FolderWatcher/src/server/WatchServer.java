@@ -28,6 +28,8 @@ import javax.swing.ListSelectionModel;
 import javax.swing.RowFilter;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -47,16 +49,19 @@ public class WatchServer {
 	private JLabel lblPort;
 	private JLabel lblLogcat;
 	private JButton btnStop;
-	JList<String> listClient;
+	JTable listClient = new JTable();
 	private DefaultListModel<String> statusModel = new DefaultListModel<String>();
 	private DefaultListModel<String> clientModel = new DefaultListModel<String>();
-	private Hashtable<String, Socket> clientHolder = new Hashtable<String, Socket>();
 	private Hashtable<String, FileTreeModel> folderHolder = new Hashtable<String, FileTreeModel>();
-	private DefaultTableModel tableModel = new DefaultTableModel(0, 0);
+	private Hashtable<String, ClientHandler> roomHash = new Hashtable<String, ClientHandler>();
+	private DefaultTableModel logModel = new DefaultTableModel(0, 0);
+	private DefaultTableModel clientTableModel = new DefaultTableModel();
 	private TableRowSorter<TableModel> rowSorter;
+	private TableRowSorter<TableModel> clientRowSorter;
+	private JButton btnDirChange;
+	
 	private static final String LOGCAT_PATH = "server_logcat.txt";
 	
-	Socket socket;
 	//static ServerSocket variable
     private static ServerSocket server;
     //socket server port on which it will listen
@@ -74,11 +79,14 @@ public class WatchServer {
 				
 		        while (true) {
 		            statusModel.addElement("Waiting for the client request");
+		            System.out.println("Waiting for the client request");
 		            //creating socket and waiting for client connection
-		            socket = server.accept();
+		            Socket socket = server.accept();
+		            System.out.println("Client was accepted");
 		           
 		            //read from socket to ObjectInputStream object
 		            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+		            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 		            //convert ObjectInputStream object to String
 		            ActionData actionData = (ActionData) ois.readObject();
 		            //String[] msg = messages.split(",");
@@ -88,49 +96,19 @@ public class WatchServer {
 		            String message = actionData.getMessage();
 		            System.out.println(message + ", action=" + action);
 		            
-		            switch (action) {
-						case Action.LOGIN: {
-							folderHolder.put(clientIP, actionData.getFolderTree());
-							holdClient(clientIP, socket);
-			            	addRowLog(createAt, action, message);
-			            	writeLog(LOGCAT_PATH, actionData.toString(), true);
-			            	// ClientData cData = new ClientData(message, clientIP);
-				            clientModel.addElement(clientIP);
-				          //create ObjectOutputStream object
-				            ObjectOutputStream oos = new ObjectOutputStream(clientHolder.get(clientIP).getOutputStream());
-				            //write object to Socket
-				            oos.writeObject("Hello, you're accepted.");
-				            oos.close();
-				            break;
-						}
-						case Action.LOGOUT: {
-			            	addRowLog(createAt, action, message);
-			            	writeLog(LOGCAT_PATH, actionData.toString(), true);
-			            	ClientData cData = new ClientData(message, clientIP);
-			            	
-				            for (int i = 0; i < clientModel.getSize(); i++) {
-				            	if (clientModel.get(i).contains(clientIP)) {
-									clientModel.remove(i);
-									break;
-								}
-				            }
-				            
-				            logout(clientIP);
-				            break;
-						}
-						case Action.FOLDER_TREE: {
-							
-							break;
-						}
-						default: {
-							addRowLog(createAt, action, message);
-							break;
-						}
-					}
-		            
-		            //close resources
-		            ois.close();
-		            //socket.close();
+		            if (action.equals(Action.LOGIN)) {
+		            	folderHolder.put(clientIP, actionData.getFolderTree());
+		            	addRowLog(createAt, action, message);
+		            	addRowClient(clientIP);
+		            	writeLog(LOGCAT_PATH, actionData.toString(), true);
+		            	// ClientData cData = new ClientData(message, clientIP);
+			            clientModel.addElement(clientIP);
+			          //create ObjectOutputStream object
+			            
+			            //write object to Socket
+			            oos.writeObject("Hello, you're accepted.");
+			            startCommunicateEnvironment(clientIP, socket, ois, oos);
+		            }
 		        }
 		    
 			} catch (IOException e) {
@@ -145,9 +123,45 @@ public class WatchServer {
 		}
     	
     };
-    private JTextField textField;
+    private JTextField textFieldClient;
     private JTable tableLog;
     private JTextField textFieldLogcatFilter;
+    
+    private void startCommunicateEnvironment(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
+    	
+    	ClientHandler talking = new ClientHandler(oos, ois, socket, new IClientAction() {
+			
+			@Override
+			public void onAction(ActionData action) {
+				String kindAction = action.getAction();
+				switch (kindAction) {
+				case Action.LOGOUT: {
+	            	addRowLog(action.getCreateAt(), kindAction, action.getMessage());
+	            	removeRowClient(clientIP);
+	            	writeLog(LOGCAT_PATH, action.toString(), true);
+	            	
+		            for (int i = 0; i < clientModel.getSize(); i++) {
+		            	if (clientModel.get(i).contains(clientIP)) {
+							clientModel.remove(i);
+							folderHolder.remove(clientIP);
+							break;
+						}
+		            }
+		            
+		            logout(clientIP);
+		            break;
+				}
+				default: {
+					addRowLog(action.getCreateAt(), kindAction, action.getMessage());
+					break;
+				}
+			}
+				
+			}
+		});
+    	roomHash.put(clientIP, talking);
+    	talking.start();
+    }
     
     private void showTree(String ip) {
     	JTree tree = new JTree(folderHolder.get(ip));
@@ -161,33 +175,57 @@ public class WatchServer {
 	    frame.setVisible(true);
     }
     
-    private void holdClient(String ip, Socket client) {
-    	clientHolder.remove(ip);
-		clientHolder.put(ip, client);
-    }
-    
     private void logout(String ip) {
-    	try {
-			clientHolder.get(ip).close();
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
-        clientHolder.remove(ip);
+    	roomHash.get(ip).logout();
+    	roomHash.remove(ip);
     }
     
     private void initLogTable() {
 		String[] header = new String[] { "No.", "Time", "Action", "Description"};
-		tableModel.setColumnIdentifiers(header);
-		tableLog.setModel(tableModel);
+		logModel.setColumnIdentifiers(header);
+		tableLog.setModel(logModel);
 		rowSorter = new TableRowSorter<>(tableLog.getModel());
 		tableLog.setRowSorter(rowSorter);
 	}
     
+    private void initClientTable() {
+    	String[] header = new String[] { "Client IP"};
+    	clientTableModel.setColumnIdentifiers(header);
+    	listClient.setModel(clientTableModel);
+    	clientRowSorter = new TableRowSorter<>(listClient.getModel());
+    	listClient.setRowSorter(clientRowSorter);
+		JScrollPane clientScroller = new JScrollPane(listClient);
+		clientScroller.setBounds(456, 48, 228, 278);
+		frame.getContentPane().add(clientScroller);
+		
+		listClient.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				btnDirChange.setEnabled(true);
+			}
+		});
+    }
+    
     private void addRowLog(String createAt, String action, String message) {
-		int rowCount = tableModel.getRowCount();
-		tableModel.addRow(new Object[] { String.valueOf(++rowCount), createAt, action, message });
+		int rowCount = logModel.getRowCount();
+		logModel.addRow(new Object[] { String.valueOf(++rowCount), createAt, action, message });
 	}
+    
+    private void addRowClient(String ip) {
+		clientTableModel.addRow(new Object[] { ip });
+	}
+    
+    private void removeRowClient(String ip) {
+    	for (int i = 1; i <= clientTableModel.getRowCount(); i++) {
+    		if (clientTableModel.getValueAt(i, 0) == ip) {
+    			clientTableModel.removeRow(i);
+    			return;
+    		}
+    		
+    	}
+    	
+    }
     
     private void writeLog(String filePath, String line, boolean isAppend) {
 		try {
@@ -231,6 +269,34 @@ public class WatchServer {
 				
 			}
 		});
+		
+		textFieldClient.getDocument().addDocumentListener(new DocumentListener() {
+			
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				String text = textFieldClient.getText();
+				if (text.trim().length() == 0) {
+					clientRowSorter.setRowFilter(null);
+				} else {
+					clientRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+				}
+			}
+			
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				String text = textFieldClient.getText();
+				if (text.trim().length() == 0) {
+					clientRowSorter.setRowFilter(null);
+				} else {
+					clientRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+				}
+			}
+			
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				
+			}
+		});
 	}
     
     private void generateServerConnectionInfo() {
@@ -257,6 +323,16 @@ public class WatchServer {
 			}
     		
     	});
+    	
+    	btnDirChange.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String selectedClient = listClient.getValueAt(listClient.getSelectedRow(), 0).toString();
+				System.out.println(selectedClient);
+				showTree(selectedClient);
+			}
+		});
     }
     
 	/**
@@ -284,6 +360,7 @@ public class WatchServer {
 		suspendConnecting();
 		handleClickEvents();
 		initLogTable();
+		initClientTable();
 		setupFilterEvents();
 	}
 	
@@ -296,7 +373,10 @@ public class WatchServer {
 		connectingThread.interrupt();
 		//close the ServerSocket object
         try {
-        	socket.close();
+        	roomHash.forEach((ip, thread) -> 
+        	{
+        		thread.logout();
+        	});
 			server.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -347,23 +427,12 @@ public class WatchServer {
 		listScroller.setBounds(6, 380, 678, 203);
 		frame.getContentPane().add(listScroller);
 		
-		listClient = new JList<String>(clientModel);
-		listClient.setVisibleRowCount(8);
-		listClient.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-		JScrollPane clientScroller = new JScrollPane(listClient);
-		clientScroller.setBounds(349, 48, 335, 278);
-		frame.getContentPane().add(clientScroller);
+		textFieldClient = new JTextField();
+		textFieldClient.setBounds(456, 16, 228, 26);
+		frame.getContentPane().add(textFieldClient);
+		textFieldClient.setColumns(10);
 		
-		textField = new JTextField();
-		textField.setBounds(456, 16, 228, 26);
-		frame.getContentPane().add(textField);
-		textField.setColumns(10);
-		
-		JButton btnSearch = new JButton("Search");
-		btnSearch.setBounds(339, 16, 117, 29);
-		frame.getContentPane().add(btnSearch);
-		
-		JButton btnDirChange = new JButton("Change Folder");
+		btnDirChange = new JButton("Change Folder");
 		btnDirChange.setEnabled(false);
 		btnDirChange.setBounds(567, 328, 117, 29);
 		frame.getContentPane().add(btnDirChange);

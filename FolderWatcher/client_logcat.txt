@@ -14,3 +14,19 @@ timestamp=1660231560760|action=RENAME|clientIP=null|message=A file jitpack_loggi
 
 2022-8-11 10:43:6:10|RENAME|null|A file jitpack_logging.txt was renamed to jitpack_log.txt
 
+2022-8-13 11:50:36:959,RENAME,liam.local,A file jitpack.txt was renamed to jitpack_log.txt
+
+2022-8-13 11:51:6:952,MODIFY,liam.local,A file .DS_Store was modified
+
+2022-8-13 11:51:6:953,CREATE,liam.local,A new file jitpack_log copy.txt was created
+
+2022-8-13 11:52:27:349,CREATE,liam.local,A new file jitpack_log copy 2.txt was created
+
+2022-8-13 11:52:47:346,DELETE,liam.local,A file jitpack_log copy 2.txt was deleted
+
+2022-8-13 11:52:57:342,MODIFY,liam.local,A file .DS_Store was modified
+
+2022-8-13 11:55:30:749,DELETE,liam.local,A file jitpack_log copy.txt was deleted
+
+2022-8-13 11:55:50:750,RENAME,liam.local,A file jitpack_log.txt was renamed to jitpack.txt
+

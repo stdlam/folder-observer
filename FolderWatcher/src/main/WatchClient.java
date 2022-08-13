@@ -57,6 +57,8 @@ public class WatchClient {
 	private static final String LOGCAT_PATH = "client_logcat.txt";
 	
 	//establish socket connection to server
+	private ObjectOutputStream oos;
+	private ObjectInputStream ois;
 	private Socket socket;
 	private String ip;
 	private JTable tableLog = new JTable();
@@ -101,11 +103,10 @@ public class WatchClient {
 			InetAddress host = InetAddress.getLocalHost();
 			this.ip = host.getHostName();
 			socket = new Socket(ip, port);
-			String response;
 			try {
 				ActionData message = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.LOGIN, this.ip, currentPathObserving, folderModel);
-				response = communicateServe(message);
-				lblStatus.setText(response);
+				sendActionToServer(message);
+				lblStatus.setText(receiveMessageFromServer());
 				btnConnect.setText("Disconnect");
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
@@ -119,24 +120,33 @@ public class WatchClient {
         
 	}
 	
-	private String communicateServe(ActionData message) throws IOException, ClassNotFoundException {
-		String response = "";
+	private void sendActionToServer(ActionData message) throws IOException, ClassNotFoundException {
+		
 		//write to socket using ObjectOutputStream
-		ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-        lblStatus.setText("Sending request to Server...");
+		System.out.println("sendActionToServer is closed: " + socket.isClosed());
+		if (oos == null) {
+			oos = new ObjectOutputStream(socket.getOutputStream());
+		}
+		
         oos.writeObject(message);
-        //read the server response message
-        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-        response = (String) ois.readObject();
-        //close resources
-        ois.close();
-        oos.close();
-        return response;
+	}
+	
+	private String receiveMessageFromServer() throws IOException, ClassNotFoundException {
+		//read the server response message
+        if (ois == null) {
+        	ois = new ObjectInputStream(socket.getInputStream());
+		}
+        return (String) ois.readObject();
 	}
 	
 	private void disconnect() {
+		System.out.println("disconnect");
 		try {
 			if (socket.isConnected()) {
+				//if (oos != null && ois != null) {
+				//	oos.close();
+				//	ois.close();
+				//}
 				socket.close();
 				btnConnect.setText("Connect");
 			}
@@ -203,6 +213,12 @@ public class WatchClient {
 			                	String message = String.format("A file %s was renamed to %s\n", delFileNamePaths, fileName.getFileName());
 			                	System.out.println(message);
 			                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.RENAME, ip, message, null);
+			                	try {
+			                		sendActionToServer(action);
+								} catch (ClassNotFoundException e) {
+									e.printStackTrace();
+								}
+			                	System.out.println("sent action to server");
 			                	addRowLog(action);
 			                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	
@@ -222,6 +238,11 @@ public class WatchClient {
 			                		System.out.printf("A new file %s was created\n", fileName.getFileName());
 			                		String message = String.format("A new file %s was created\n", fileName.getFileName());
 				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.CREATE, ip, message, null);
+				                	try {
+				                		sendActionToServer(action);
+									} catch (ClassNotFoundException e) {
+										e.printStackTrace();
+									}
 				                	addRowLog(action);
 				                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	}
@@ -232,6 +253,11 @@ public class WatchClient {
 			                		System.out.printf("A file %s was modified\n", fileName.getFileName());
 			                		String message = String.format("A file %s was modified\n", fileName.getFileName());
 				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.MODIFY, ip, message, null);
+				                	try {
+				                		sendActionToServer(action);
+									} catch (ClassNotFoundException e) {
+										e.printStackTrace();
+									}
 				                	addRowLog(action);
 				                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	}
@@ -243,6 +269,11 @@ public class WatchClient {
 			                		System.out.printf("A file %s was deleted\n", fileName.getFileName());
 			                		String message = String.format("A file %s was deleted\n", fileName.getFileName());
 				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.DELETE, ip, message, null);
+				                	try {
+				                		sendActionToServer(action);
+									} catch (ClassNotFoundException e) {
+										e.printStackTrace();
+									}
 				                	addRowLog(action);
 				                	writeLog(LOGCAT_PATH, action.toString(), true);
 			                	}
