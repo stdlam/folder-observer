@@ -189,20 +189,16 @@ public class WatchClient {
 	private void disconnect() {
 		System.out.println("disconnect");
 		receiverThread.interrupt();
-		try {
-			if (socket.isConnected()) {
-				//if (oos != null && ois != null) {
-				//	oos.close();
-				//	ois.close();
-				//}
-				
-				socket.close();
-				btnConnect.setText("Connect");
-				
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (socket.isConnected()) {
+			//if (oos != null && ois != null) {
+			//	oos.close();
+			//	ois.close();
+			//}
+			
+			ois = null;
+			oos = null;
+			btnConnect.setText("Connect");
+			
 		}
 	}
 	
@@ -408,7 +404,7 @@ public class WatchClient {
 					
 					connect(ip, port);
 				} else {
-					ActionData message = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.LOGOUT, ip, currentPathObserving, null);
+					ActionData message = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.LOGOUT, ip, "Logging out", null);
 					try {
 						sendActionToServer(message);
 					} catch (ClassNotFoundException e1) {

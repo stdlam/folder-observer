@@ -322,8 +322,13 @@ public class WatchServer {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				stopConnection();
-				
+				if (btnStop.getText().equals("Stop Server")) {
+					stopConnection();
+					btnStop.setText("Start Server");
+				} else {
+					suspendConnecting();
+					btnStop.setText("Stop Server");
+				}
 			}
     		
     	});
@@ -388,17 +393,14 @@ public class WatchServer {
 	
 	private void stopConnection() {
 		connectingThread.interrupt();
-		//close the ServerSocket object
-        try {
-        	roomHash.forEach((ip, thread) -> 
-        	{
-        		thread.logout();
-        	});
-			server.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		roomHash.forEach((ip, thread) -> 
+		{
+			removeRowClient(ip);
+			thread.logout();
+			thread.interrupt();
+		});
+		roomHash.clear();
+		server = null;
 	}
 
 	/**
@@ -436,6 +438,7 @@ public class WatchServer {
 		frame.getContentPane().add(lblLogcat);
 		
 		btnStop = new JButton("Stop Server");
+		btnStop.setEnabled(false);
 		btnStop.setBounds(69, 102, 117, 29);
 		frame.getContentPane().add(btnStop);
 		

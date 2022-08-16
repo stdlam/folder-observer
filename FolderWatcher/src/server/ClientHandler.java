@@ -52,11 +52,9 @@ public class ClientHandler extends Thread {
 		try {
 			loggedOut = true;
 			oos.writeObject(new ServerActionData(Action.SERVER_LOGOUT_RESPONSE, "See you again!"));
-			ois.close();
-			oos.close();
-			if (socket != null && socket.isConnected()) {
-				socket.close();
-			}
+			ois = null;
+			oos = null;
+			socket = null;
 			
 		} catch (IOException e) {
 			e.printStackTrace();
