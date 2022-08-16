@@ -30,3 +30,37 @@ timestamp=1660231560760|action=RENAME|clientIP=null|message=A file jitpack_loggi
 
 2022-8-13 11:55:50:750,RENAME,liam.local,A file jitpack_log.txt was renamed to jitpack.txt
 
+2022-8-14 9:31:34:758,MODIFY,liam.local,A file .DS_Store was modified
+
+2022-8-14 11:39:38:213,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-14 1:24:31:263,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-14 1:59:22:322,RENAME,liam.local,A file jitpack.txt was renamed to jitpack_log.txt
+
+2022-8-14 11:10:12:30,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-14 11:25:39:998,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-14 11:41:2:53,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-14 11:51:1:755,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-14 11:58:34:44,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-15 0:2:27:613,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-15 0:14:42:987,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-16 9:35:40:971,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-16 9:39:3:335,SERVER_LOGIN_RESPONSE,,Hello, you're accepted.
+2022-8-16 9:39:24:36,RENAME,192.168.2.1,A file jitpack_log.txt was renamed to jitpack.txt
+
+2022-8-16 9:40:4:33,CREATE,192.168.2.1,A new file jitpack copy.txt was created
+
+2022-8-16 9:40:24:34,DELETE,192.168.2.1,A file jitpack copy.txt was deleted
+
+2022-8-16 9:40:44:33,MODIFY,192.168.2.1,A file jitpack.txt was modified
+
+2022-8-16 10:27:9:938,MODIFY,192.168.2.1,A file .DS_Store was modified
+
+2022-8-16 10:27:9:939,DELETE,192.168.2.1,A file hello was deleted
+
+2022-8-16 10:27:19:939,MODIFY,192.168.2.1,A file .DS_Store was modified
+
+2022-8-16 10:27:59:940,RENAME,192.168.2.1,A file aobservable was renamed to observable
+
+2022-8-16 10:47:34:840,SERVER_CHANGE_FOLDER,,Changed observable folder to /Users/lamnguyen/Desktop
+2022-8-16 10:48:4:864,CREATE,192.168.2.1,A new file jitpack 2.txt was created
+

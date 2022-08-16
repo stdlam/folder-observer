@@ -49,7 +49,7 @@ public class WatchServer {
 	private JLabel lblPort;
 	private JLabel lblLogcat;
 	private JButton btnStop;
-	JTable listClient = new JTable();
+	private JTable listClient = new JTable();
 	private DefaultListModel<String> statusModel = new DefaultListModel<String>();
 	private DefaultListModel<String> clientModel = new DefaultListModel<String>();
 	private Hashtable<String, FileTreeModel> folderHolder = new Hashtable<String, FileTreeModel>();
@@ -59,7 +59,9 @@ public class WatchServer {
 	private TableRowSorter<TableModel> rowSorter;
 	private TableRowSorter<TableModel> clientRowSorter;
 	private JButton btnDirChange;
-	
+	private JTree tree;
+	private JFrame folderFrame;
+	private JButton btnChange;
 	private static final String LOGCAT_PATH = "server_logcat.txt";
 	
 	//static ServerSocket variable
@@ -85,8 +87,9 @@ public class WatchServer {
 		            System.out.println("Client was accepted");
 		           
 		            //read from socket to ObjectInputStream object
-		            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 		            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+		            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+		            
 		            //convert ObjectInputStream object to String
 		            ActionData actionData = (ActionData) ois.readObject();
 		            //String[] msg = messages.split(",");
@@ -98,7 +101,7 @@ public class WatchServer {
 		            
 		            if (action.equals(Action.LOGIN)) {
 		            	folderHolder.put(clientIP, actionData.getFolderTree());
-		            	addRowLog(createAt, action, message);
+		            	addRowLog(clientIP, createAt, action, message);
 		            	addRowClient(clientIP);
 		            	writeLog(LOGCAT_PATH, actionData.toString(), true);
 		            	// ClientData cData = new ClientData(message, clientIP);
@@ -106,7 +109,7 @@ public class WatchServer {
 			          //create ObjectOutputStream object
 			            
 			            //write object to Socket
-			            oos.writeObject("Hello, you're accepted.");
+			            oos.writeObject(new ServerActionData(Action.SERVER_LOGIN_RESPONSE, "Hello, you're accepted."));
 			            startCommunicateEnvironment(clientIP, socket, ois, oos);
 		            }
 		        }
@@ -136,7 +139,7 @@ public class WatchServer {
 				String kindAction = action.getAction();
 				switch (kindAction) {
 				case Action.LOGOUT: {
-	            	addRowLog(action.getCreateAt(), kindAction, action.getMessage());
+	            	addRowLog(action.getClientIP(), action.getCreateAt(), kindAction, action.getMessage());
 	            	removeRowClient(clientIP);
 	            	writeLog(LOGCAT_PATH, action.toString(), true);
 	            	
@@ -152,7 +155,7 @@ public class WatchServer {
 		            break;
 				}
 				default: {
-					addRowLog(action.getCreateAt(), kindAction, action.getMessage());
+					addRowLog(action.getClientIP(), action.getCreateAt(), kindAction, action.getMessage());
 					break;
 				}
 			}
@@ -164,15 +167,15 @@ public class WatchServer {
     }
     
     private void showTree(String ip) {
-    	JTree tree = new JTree(folderHolder.get(ip));
+    	tree = new JTree(folderHolder.get(ip));
     	// The JTree can get big, so allow it to scroll.
 	    JScrollPane scrollpane = new JScrollPane(tree);
 	    
 	    // Display it all in a window and make the window appear
-	    JFrame frame = new JFrame("Folder Chooser");
-	    frame.getContentPane().add(scrollpane, "Center");
-	    frame.setSize(400,600);
-	    frame.setVisible(true);
+	    folderFrame = new JFrame("Folder Chooser");
+	    folderFrame.getContentPane().add(scrollpane, "Center");
+	    folderFrame.setSize(400,600);
+	    folderFrame.setVisible(true);
     }
     
     private void logout(String ip) {
@@ -181,7 +184,7 @@ public class WatchServer {
     }
     
     private void initLogTable() {
-		String[] header = new String[] { "No.", "Time", "Action", "Description"};
+		String[] header = new String[] { "No.", "Client IP", "Time", "Action", "Description"};
 		logModel.setColumnIdentifiers(header);
 		tableLog.setModel(logModel);
 		rowSorter = new TableRowSorter<>(tableLog.getModel());
@@ -198,6 +201,7 @@ public class WatchServer {
 		clientScroller.setBounds(456, 48, 228, 278);
 		frame.getContentPane().add(clientScroller);
 		
+		
 		listClient.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			
 			@Override
@@ -207,9 +211,9 @@ public class WatchServer {
 		});
     }
     
-    private void addRowLog(String createAt, String action, String message) {
+    private void addRowLog(String clientIP, String createAt, String action, String message) {
 		int rowCount = logModel.getRowCount();
-		logModel.addRow(new Object[] { String.valueOf(++rowCount), createAt, action, message });
+		logModel.addRow(new Object[] { String.valueOf(++rowCount), clientIP, createAt, action, message });
 	}
     
     private void addRowClient(String ip) {
@@ -333,6 +337,19 @@ public class WatchServer {
 				showTree(selectedClient);
 			}
 		});
+    	
+    	btnChange.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (tree.isSelectionEmpty() == false) {
+					String pathString = tree.getSelectionPath().getLastPathComponent().toString();
+					String selectedClient = listClient.getValueAt(listClient.getSelectedRow(), 0).toString();
+					roomHash.get(selectedClient).changeFolder(pathString);
+					folderFrame.setVisible(false);
+				}
+			}
+		});
     }
     
 	/**
@@ -432,7 +449,7 @@ public class WatchServer {
 		frame.getContentPane().add(textFieldClient);
 		textFieldClient.setColumns(10);
 		
-		btnDirChange = new JButton("Change Folder");
+		btnDirChange = new JButton("Show Folder");
 		btnDirChange.setEnabled(false);
 		btnDirChange.setBounds(567, 328, 117, 29);
 		frame.getContentPane().add(btnDirChange);
@@ -441,5 +458,9 @@ public class WatchServer {
 		textFieldLogcatFilter.setBounds(100, 347, 251, 26);
 		frame.getContentPane().add(textFieldLogcatFilter);
 		textFieldLogcatFilter.setColumns(10);
+		
+		btnChange = new JButton("Change");
+		btnChange.setBounds(448, 328, 78, 29);
+		frame.getContentPane().add(btnChange);
 	}
 }

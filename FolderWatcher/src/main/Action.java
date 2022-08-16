@@ -7,5 +7,8 @@ public class Action {
 	public static final String DELETE = "DELETE";
 	public static final String LOGOUT = "LOGOUT";
 	public static final String LOGIN = "LOGIN";
-	public static final String FOLDER_TREE = "FOLDER_TREE";
+	
+	public static final String SERVER_CHANGE_FOLDER = "SERVER_CHANGE_FOLDER";
+	public static final String SERVER_STOP = "SERVER_STOP"; 
+	public static final String SERVER_LOGIN_RESPONSE = "SERVER_LOGIN_RESPONSE";
 }

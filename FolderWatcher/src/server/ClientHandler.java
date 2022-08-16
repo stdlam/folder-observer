@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import main.Action;
 import main.ActionData;
 
 public class ClientHandler extends Thread {
@@ -39,7 +40,7 @@ public class ClientHandler extends Thread {
 	
 	public void changeFolder(String path) {
 		try {
-			oos.writeObject(path);
+			oos.writeObject(new ServerActionData(Action.SERVER_CHANGE_FOLDER, path));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

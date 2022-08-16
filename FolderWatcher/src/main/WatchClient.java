@@ -41,6 +41,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.tree.TreeModel;
+
+import server.ServerActionData;
+
 import javax.swing.JButton;
 import javax.swing.JTable;
 
@@ -52,6 +55,7 @@ public class WatchClient {
 	private JLabel lblStatus;
 	private JButton btnConnect;
 	private Hashtable<String, Thread> threadHolder = new Hashtable<String, Thread>();
+	private Hashtable<String, WatchService> watcherHolder = new Hashtable<String, WatchService>();
 	private DefaultTableModel tableModel = new DefaultTableModel(0, 0);
 	
 	private static final String LOGCAT_PATH = "client_logcat.txt";
@@ -105,16 +109,17 @@ public class WatchClient {
 			socket = new Socket(ip, port);
 			try {
 				ActionData message = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.LOGIN, this.ip, currentPathObserving, folderModel);
+				
 				sendActionToServer(message);
-				lblStatus.setText(receiveMessageFromServer());
-				btnConnect.setText("Disconnect");
+				receiveMessageFromServer();
+				
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 				showDialog(frame, "Connection Error", "Please try connect again");
 			}
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+		  	e.printStackTrace();
 			showDialog(frame, "Cannot connect to server", e.getMessage());
 		}
         
@@ -131,12 +136,47 @@ public class WatchClient {
         oos.writeObject(message);
 	}
 	
-	private String receiveMessageFromServer() throws IOException, ClassNotFoundException {
+	private void receiveMessageFromServer() throws IOException, ClassNotFoundException {
 		//read the server response message
         if (ois == null) {
         	ois = new ObjectInputStream(socket.getInputStream());
 		}
-        return (String) ois.readObject();
+        
+        Thread receiverThread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while (true) {
+		        	ServerActionData serverAction;
+					try {
+						serverAction = (ServerActionData) ois.readObject();
+						String actString = serverAction.getAction();
+			        	System.out.println("receiveMessageFromServer - reading server action " + actString);
+			        	
+			        	if (actString.equals(Action.SERVER_LOGIN_RESPONSE)) {
+			        		System.out.println("receiveMessageFromServer - update views");
+			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), serverAction.getAction(), "", serverAction.getMessage(), null);
+			        		lblStatus.setText(serverAction.getMessage());
+							btnConnect.setText("Disconnect");
+							addRowLog(action);
+			        		writeLog(LOGCAT_PATH, action.toString(), true);
+			        		
+			        	} else if (actString.equals(Action.SERVER_CHANGE_FOLDER)) {
+			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), serverAction.getAction(), "", "Changed observable folder to " + serverAction.getMessage(), null);
+			        		addRowLog(action);
+			        		writeLog(LOGCAT_PATH, action.toString(), true);
+			        		startNewRegisterFolder(serverAction.getMessage());
+			        	}
+					} catch (ClassNotFoundException | IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+		        	
+				}
+			}
+		});
+        receiverThread.start();
+        
 	}
 	
 	private void disconnect() {
@@ -174,6 +214,28 @@ public class WatchClient {
 		
 	}
 	
+	private void startNewRegisterFolder(String path) {
+		// disconnect old watchers
+		threadHolder.forEach((dir, thread) -> {
+			thread.interrupt();
+		});
+		watcherHolder.forEach((dir, watcher) -> {
+			try {
+				watcher.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
+		
+		File file = new File(path);
+		String parent = file.getParent();
+		currentPathObserving = file.getPath();
+		// register parent path
+		registerFolder(parent, true);
+		// register current
+		registerFolder(file.getPath(), false);
+	}
+	
 	private void registerFolder(String path, Boolean isParent) {
 		Runnable watchingRunnable = new Runnable() {
 
@@ -187,6 +249,8 @@ public class WatchClient {
 					Path dir = Paths.get(path);
 			        dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE,
 			                StandardWatchEventKinds.ENTRY_MODIFY);
+			        
+			        watcherHolder.put(path, watcher);
 			 
 			        System.out.println("Watch Service registered for dir: " + dir.getFileName() + ", oldLivePath=" + livePath);
 			 
