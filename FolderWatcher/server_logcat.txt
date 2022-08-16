@@ -32,3 +32,14 @@
 2022-8-15 0:14:42:898,LOGIN,192.168.2.1,/Users/lamnguyen/aobservable
 2022-8-16 9:35:40:873,LOGIN,192.168.2.1,/Users/lamnguyen/aobservable
 2022-8-16 9:39:3:238,LOGIN,192.168.2.1,/Users/lamnguyen/aobservable
+2022-8-16 11:24:47:423,LOGIN,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:27:23:532,LOGIN,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:27:27:9,LOGOUT,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:28:43:754,LOGIN,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:28:48:434,LOGOUT,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:32:6:312,LOGIN,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:32:10:271,LOGOUT,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:35:49:22,LOGIN,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:35:52:483,LOGOUT,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:37:39:30,LOGIN,192.168.2.1,/Users/lamnguyen/Pictures
+2022-8-16 11:37:40:674,LOGOUT,192.168.2.1,/Users/lamnguyen/Pictures

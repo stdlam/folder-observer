@@ -13,6 +13,8 @@ public class ClientHandler extends Thread {
 	ObjectInputStream ois;
 	Socket socket;
 	IClientAction clientAction;
+	private boolean loggedOut = false;
+	
 	public ClientHandler(ObjectOutputStream oos, ObjectInputStream ois, Socket socket, IClientAction clientAction) {
 		super();
 		this.oos = oos;
@@ -25,7 +27,7 @@ public class ClientHandler extends Thread {
 	public void run() {
 		
 		try {
-			while (true) {
+			while (!loggedOut) {
 				ActionData actionData = (ActionData) ois.readObject();
 				clientAction.onAction(actionData);
 			}
@@ -48,6 +50,8 @@ public class ClientHandler extends Thread {
 	
 	public void logout() {
 		try {
+			loggedOut = true;
+			oos.writeObject(new ServerActionData(Action.SERVER_LOGOUT_RESPONSE, "See you again!"));
 			ois.close();
 			oos.close();
 			if (socket != null && socket.isConnected()) {

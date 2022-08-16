@@ -69,6 +69,7 @@ public class WatchClient {
 	private TableRowSorter<TableModel> rowSorter;
 	private JTextField textFieldLogFilter;
 	private String currentPathObserving = "";
+	private Thread receiverThread;
 	
 	private FileTreeModel folderModel = new FileTreeModel(new File(System.getProperty("user.home")));
 
@@ -142,7 +143,7 @@ public class WatchClient {
         	ois = new ObjectInputStream(socket.getInputStream());
 		}
         
-        Thread receiverThread = new Thread(new Runnable() {
+        receiverThread = new Thread(new Runnable() {
 			
 			@Override
 			public void run() {
@@ -155,17 +156,23 @@ public class WatchClient {
 			        	
 			        	if (actString.equals(Action.SERVER_LOGIN_RESPONSE)) {
 			        		System.out.println("receiveMessageFromServer - update views");
-			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), serverAction.getAction(), "", serverAction.getMessage(), null);
+			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), actString, ip, serverAction.getMessage(), null);
 			        		lblStatus.setText(serverAction.getMessage());
 							btnConnect.setText("Disconnect");
 							addRowLog(action);
 			        		writeLog(LOGCAT_PATH, action.toString(), true);
 			        		
 			        	} else if (actString.equals(Action.SERVER_CHANGE_FOLDER)) {
-			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), serverAction.getAction(), "", "Changed observable folder to " + serverAction.getMessage(), null);
+			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), actString, ip, "Changed observable folder to " + serverAction.getMessage(), null);
 			        		addRowLog(action);
 			        		writeLog(LOGCAT_PATH, action.toString(), true);
 			        		startNewRegisterFolder(serverAction.getMessage());
+			        	} else if (actString.equals(Action.SERVER_LOGOUT_RESPONSE)) {
+			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), actString, ip, serverAction.getMessage(), null);
+			        		addRowLog(action);
+			        		writeLog(LOGCAT_PATH, action.toString(), true);
+			        		disconnect();
+			        		break;
 			        	}
 					} catch (ClassNotFoundException | IOException e) {
 						// TODO Auto-generated catch block
@@ -181,14 +188,17 @@ public class WatchClient {
 	
 	private void disconnect() {
 		System.out.println("disconnect");
+		receiverThread.interrupt();
 		try {
 			if (socket.isConnected()) {
 				//if (oos != null && ois != null) {
 				//	oos.close();
 				//	ois.close();
 				//}
+				
 				socket.close();
 				btnConnect.setText("Connect");
+				
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -398,7 +408,16 @@ public class WatchClient {
 					
 					connect(ip, port);
 				} else {
-					disconnect();
+					ActionData message = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.LOGOUT, ip, currentPathObserving, null);
+					try {
+						sendActionToServer(message);
+					} catch (ClassNotFoundException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				}
 				
 			}

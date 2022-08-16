@@ -150,10 +150,10 @@ public class WatchServer {
 							break;
 						}
 		            }
-		            
 		            logout(clientIP);
 		            break;
 				}
+			
 				default: {
 					addRowLog(action.getClientIP(), action.getCreateAt(), kindAction, action.getMessage());
 					break;
@@ -221,7 +221,7 @@ public class WatchServer {
 	}
     
     private void removeRowClient(String ip) {
-    	for (int i = 1; i <= clientTableModel.getRowCount(); i++) {
+    	for (int i = 0; i < clientTableModel.getRowCount(); i++) {
     		if (clientTableModel.getValueAt(i, 0) == ip) {
     			clientTableModel.removeRow(i);
     			return;
