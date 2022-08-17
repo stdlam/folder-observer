@@ -8,14 +8,19 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.awt.Color;
 
@@ -130,6 +135,26 @@ public class WatchServer {
     private JTable tableLog;
     private JTextField textFieldLogcatFilter;
     
+    private void readHistoriesLog() {
+		try {
+			InputStream bin = new FileInputStream(LOGCAT_PATH);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(bin, "utf8"));
+			while (reader.ready()) {
+				String line = reader.readLine();
+				String[] messages = line.split(",");
+				if (messages.length == 4) {
+					addRowLog(messages[2], messages[0], messages[1],  messages[3]);
+				}
+			}
+			
+			reader.close();
+			bin.close();
+			
+		} catch(Exception e ) {
+			e.printStackTrace();
+		}
+	}
+    
     private void startCommunicateEnvironment(String clientIP, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) {
     	
     	ClientHandler talking = new ClientHandler(oos, ois, socket, new IClientAction() {
@@ -156,6 +181,7 @@ public class WatchServer {
 			
 				default: {
 					addRowLog(action.getClientIP(), action.getCreateAt(), kindAction, action.getMessage());
+					writeLog(LOGCAT_PATH, action.toString(), true);
 					break;
 				}
 			}
@@ -198,7 +224,7 @@ public class WatchServer {
     	clientRowSorter = new TableRowSorter<>(listClient.getModel());
     	listClient.setRowSorter(clientRowSorter);
 		JScrollPane clientScroller = new JScrollPane(listClient);
-		clientScroller.setBounds(456, 48, 228, 278);
+		clientScroller.setBounds(642, 53, 228, 278);
 		frame.getContentPane().add(clientScroller);
 		
 		
@@ -347,7 +373,7 @@ public class WatchServer {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (tree.isSelectionEmpty() == false) {
+				if (tree != null && tree.isSelectionEmpty() == false) {
 					String pathString = tree.getSelectionPath().getLastPathComponent().toString();
 					String selectedClient = listClient.getValueAt(listClient.getSelectedRow(), 0).toString();
 					roomHash.get(selectedClient).changeFolder(pathString);
@@ -384,6 +410,7 @@ public class WatchServer {
 		initLogTable();
 		initClientTable();
 		setupFilterEvents();
+		readHistoriesLog();
 	}
 	
 	private void suspendConnecting() {
@@ -408,7 +435,7 @@ public class WatchServer {
 	 */
 	private void initialize() {	
 		frame = new JFrame();
-		frame.setBounds(100, 100, 690, 613);
+		frame.setBounds(100, 100, 876, 726);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		
@@ -444,17 +471,17 @@ public class WatchServer {
 		
 		tableLog = new JTable();
 		JScrollPane listScroller = new JScrollPane(tableLog);
-		listScroller.setBounds(6, 380, 678, 203);
+		listScroller.setBounds(6, 380, 864, 312);
 		frame.getContentPane().add(listScroller);
 		
 		textFieldClient = new JTextField();
-		textFieldClient.setBounds(456, 16, 228, 26);
+		textFieldClient.setBounds(642, 16, 228, 26);
 		frame.getContentPane().add(textFieldClient);
 		textFieldClient.setColumns(10);
 		
 		btnDirChange = new JButton("Show Folder");
 		btnDirChange.setEnabled(false);
-		btnDirChange.setBounds(567, 328, 117, 29);
+		btnDirChange.setBounds(753, 339, 117, 29);
 		frame.getContentPane().add(btnDirChange);
 		
 		textFieldLogcatFilter = new JTextField();
@@ -463,7 +490,7 @@ public class WatchServer {
 		textFieldLogcatFilter.setColumns(10);
 		
 		btnChange = new JButton("Change");
-		btnChange.setBounds(448, 328, 78, 29);
+		btnChange.setBounds(638, 339, 78, 29);
 		frame.getContentPane().add(btnChange);
 	}
 }

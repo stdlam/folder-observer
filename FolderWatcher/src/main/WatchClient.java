@@ -129,7 +129,6 @@ public class WatchClient {
 	private void sendActionToServer(ActionData message) throws IOException, ClassNotFoundException {
 		
 		//write to socket using ObjectOutputStream
-		System.out.println("sendActionToServer is closed: " + socket.isClosed());
 		if (oos == null) {
 			oos = new ObjectOutputStream(socket.getOutputStream());
 		}
@@ -275,12 +274,23 @@ public class WatchClient {
 			                // Retrieve the type of event by using the kind() method.
 			                WatchEvent.Kind<?> kind = event.kind();
 			                WatchEvent<Path> ev = (WatchEvent<Path>) event;
-			                Path fileName = ev.context();
+			                Path filePath = ev.context();
+			                
+			                //(new File(absPath.toString() + "/")).isDirectory();
+			                String fileName = filePath.toString().replace(".", ",");
+			                int splitResult = fileName.split(",").length;
+			                boolean isFile = fileName.contains(",") && splitResult == 2;
+			                String fileCheckMsg;
+			                if (isFile) {
+			                	fileCheckMsg = "File";
+			                } else {
+			                	fileCheckMsg = "Folder"; 
+			                }
 			               
 			                if(isRenameFile(events)) {
 			                	WatchEvent<Path> delEv = (WatchEvent<Path>) events.get(1);
 			                	Path delFileNamePaths = delEv.context();
-			                	String message = String.format("A file %s was renamed to %s\n", delFileNamePaths, fileName.getFileName());
+			                	String message = String.format("%s %s was renamed to %s\n", fileCheckMsg, delFileNamePaths, filePath.getFileName());
 			                	System.out.println(message);
 			                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.RENAME, ip, message, null);
 			                	try {
@@ -294,7 +304,7 @@ public class WatchClient {
 			                	
 			                	if (isParentWatching) {
 									// if this is parent renamed, interrupt current thread and start new thread with new path
-			                		currentPathObserving = livePath + "/" + fileName.getFileName().toString();
+			                		currentPathObserving = livePath + "/" + filePath.getFileName().toString();
 			                		registerFolder(currentPathObserving, false);
 			                		interruptObservePath(livePath + "/" + delFileNamePaths.getFileName().toString());
 								}
@@ -303,10 +313,10 @@ public class WatchClient {
 			               
 			                if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
 			                	if (isParentWatching == true) {
-			                		System.out.printf("A new file %s was created in parent\n", fileName.getFileName());
+			                		System.out.printf("%s %s was created in parent\n", fileCheckMsg, filePath.getFileName());
 			                	} else {
-			                		System.out.printf("A new file %s was created\n", fileName.getFileName());
-			                		String message = String.format("A new file %s was created\n", fileName.getFileName());
+			                		System.out.printf("%s %s was created\n", fileCheckMsg, filePath.getFileName());
+			                		String message = String.format("%s %s was created\n", fileCheckMsg, filePath.getFileName());
 				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.CREATE, ip, message, null);
 				                	try {
 				                		sendActionToServer(action);
@@ -318,10 +328,10 @@ public class WatchClient {
 			                	}
 			                } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
 			                	if (isParentWatching == true) {
-			                		System.out.printf("A file %s was modified in parent\n", fileName.getFileName());
+			                		System.out.printf("%s %s was modified in parent\n", fileCheckMsg, filePath.getFileName());
 			                	} else {
-			                		System.out.printf("A file %s was modified\n", fileName.getFileName());
-			                		String message = String.format("A file %s was modified\n", fileName.getFileName());
+			                		System.out.printf("%s %s was modified\n", fileCheckMsg, filePath.getFileName());
+			                		String message = String.format("%s %s was modified\n", fileCheckMsg, filePath.getFileName());
 				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.MODIFY, ip, message, null);
 				                	try {
 				                		sendActionToServer(action);
@@ -334,10 +344,10 @@ public class WatchClient {
 			                	
 			                } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
 			                	if (isParentWatching == true) {
-			                		System.out.printf("A file %s was deleted in parent\n", fileName.getFileName());
+			                		System.out.printf("%s %s was deleted in parent\n", fileCheckMsg, filePath.getFileName());
 			                	} else {
-			                		System.out.printf("A file %s was deleted\n", fileName.getFileName());
-			                		String message = String.format("A file %s was deleted\n", fileName.getFileName());
+			                		System.out.printf("%s %s was deleted\n", fileCheckMsg, filePath.getFileName());
+			                		String message = String.format("%s %s was deleted\n", fileCheckMsg, filePath.getFileName());
 				                	ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), Action.DELETE, ip, message, null);
 				                	try {
 				                		sendActionToServer(action);

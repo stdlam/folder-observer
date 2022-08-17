@@ -106,3 +106,73 @@ timestamp=1660231560760|action=RENAME|clientIP=null|message=A file jitpack_loggi
 2022-8-17 0:29:55:620,SERVER_LOGOUT_RESPONSE,192.168.2.1,See you again!
 2022-8-17 0:30:1:747,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
 2022-8-17 0:30:2:981,SERVER_LOGOUT_RESPONSE,192.168.2.1,See you again!
+2022-8-17 6:7:43:534,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:8:48:693,CREATE,192.168.2.1,File jitpack.txt was created
+
+2022-8-17 6:9:8:690,CREATE,192.168.2.1,File untitled folder was created
+
+2022-8-17 6:9:8:691,MODIFY,192.168.2.1,File .DS_Store was modified
+
+2022-8-17 6:10:19:775,SERVER_LOGOUT_RESPONSE,192.168.2.1,See you again!
+2022-8-17 6:12:55:978,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:15:10:411,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:15:24:866,MODIFY,192.168.2.1,Folder .DS_Store was modified
+
+2022-8-17 6:15:24:868,DELETE,192.168.2.1,Folder untitled folder was deleted
+
+2022-8-17 6:15:34:863,MODIFY,192.168.2.1,Folder .DS_Store was modified
+
+2022-8-17 6:15:44:864,DELETE,192.168.2.1,Folder jitpack.txt was deleted
+
+2022-8-17 6:29:43:359,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:30:28:551,SERVER_CHANGE_FOLDER,192.168.2.1,Changed observable folder to /Users/lamnguyen/observable
+2022-8-17 6:30:48:556,DELETE,192.168.2.1,Folder untitled was deleted
+
+2022-8-17 6:30:58:558,MODIFY,192.168.2.1,Folder .DS_Store was modified
+
+2022-8-17 6:31:8:559,RENAME,192.168.2.1,Folder jitpack.txt was renamed to jitpack_log.txt
+
+2022-8-17 6:32:33:308,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:37:14:253,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:38:5:269,RENAME,192.168.2.1,Folder jitpack_log.txt was renamed to jitpack.txt
+
+2022-8-17 6:41:43:23,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:43:4:631,RENAME,192.168.2.1,File jitpack.txt was renamed to jitpack_log.txt
+
+2022-8-17 6:48:7:875,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:51:3:302,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:51:48:6,RENAME,192.168.2.1,File jitpack.txt was renamed to jitpack_log.txt
+
+2022-8-17 6:54:45:114,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:55:28:545,RENAME,192.168.2.1,File jitpack_log.txt was renamed to jitpack.txt
+
+2022-8-17 6:56:48:822,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 6:57:29:321,CREATE,192.168.2.1,File jitpack copy.txt was created
+
+2022-8-17 7:4:9:898,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 7:4:47:435,DELETE,192.168.2.1,File jitpack copy.txt was deleted
+
+2022-8-17 7:7:14:375,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 7:7:51:299,MODIFY,192.168.2.1,File .DS_Store was modified
+
+2022-8-17 7:8:4:912,CREATE,192.168.2.1,File jitpack copy.txt was created
+
+2022-8-17 7:10:11:959,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 7:10:35:13,DELETE,192.168.2.1,File jitpack copy.txt was deleted
+
+2022-8-17 8:20:20:196,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 8:36:7:894,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 8:36:50:896,MODIFY,192.168.2.1,File .DS_Store was modified
+
+2022-8-17 9:20:7:489,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 9:20:47:769,CREATE,192.168.2.1,File jitpack copy.txt was created
+
+2022-8-17 9:24:13:486,SERVER_LOGIN_RESPONSE,192.168.2.1,Hello, you're accepted.
+2022-8-17 9:25:16:213,MODIFY,192.168.2.1,File .DS_Store was modified
+
+2022-8-17 9:25:16:215,DELETE,192.168.2.1,File jitpack copy.txt was deleted
+
+2022-8-17 9:25:26:215,CREATE,192.168.2.1,Folder untitled folder was created
+
+2022-8-17 9:25:26:216,MODIFY,192.168.2.1,File .DS_Store was modified
+
