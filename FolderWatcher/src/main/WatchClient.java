@@ -58,7 +58,8 @@ public class WatchClient {
 	private Hashtable<String, WatchService> watcherHolder = new Hashtable<String, WatchService>();
 	private DefaultTableModel tableModel = new DefaultTableModel(0, 0);
 	
-	private static final String LOGCAT_PATH = "client_logcat.txt";
+	private static final String LOGCAT_FILENAME = "client_logcat.txt";
+	private static final String LOGCAT_PARENT_PATH = System.getProperty("user.home") + "/FolderObserver/logcat/client/";
 	
 	//establish socket connection to server
 	private ObjectOutputStream oos;
@@ -72,6 +73,7 @@ public class WatchClient {
 	private Thread receiverThread;
 	
 	private FileTreeModel folderModel = new FileTreeModel(new File(System.getProperty("user.home")));
+	static final ClassLoader loader = Thread.currentThread().getContextClassLoader();
 
 	/**
 	 * Launch the application.
@@ -91,13 +93,24 @@ public class WatchClient {
 	
 	private void writeLog(String filePath, String line, boolean isAppend) {
 		try {
-			FileWriter fw = new FileWriter(filePath, isAppend);
-			 
+			//String absPath = loader.getResource(filePath).getFile();
+			File parent = new File(filePath);
+			parent.mkdirs();
+			File f = new File(filePath + LOGCAT_FILENAME);
+			if (!f.exists()) {
+				f.createNewFile();
+			}
+			//PrintWriter writer = new PrintWriter(new File(loader.getResource(filePath).getFile()));
+			//writer.append(line);
+			//writer.append("\n");
+			//writer.close();
+			
+			FileWriter fw = new FileWriter(filePath + LOGCAT_FILENAME, isAppend);
 			fw.write(line);
 			fw.write("\n");
 			fw.close();
 			
-			System.out.println("wrote data to " + filePath);
+			System.out.println("wrote data to " + filePath + LOGCAT_FILENAME);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -159,17 +172,17 @@ public class WatchClient {
 			        		lblStatus.setText(serverAction.getMessage());
 							btnConnect.setText("Disconnect");
 							addRowLog(action);
-			        		writeLog(LOGCAT_PATH, action.toString(), true);
+			        		writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			        		
 			        	} else if (actString.equals(Action.SERVER_CHANGE_FOLDER)) {
 			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), actString, ip, "Changed observable folder to " + serverAction.getMessage(), null);
 			        		addRowLog(action);
-			        		writeLog(LOGCAT_PATH, action.toString(), true);
+			        		writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			        		startNewRegisterFolder(serverAction.getMessage());
 			        	} else if (actString.equals(Action.SERVER_LOGOUT_RESPONSE)) {
 			        		ActionData action = new ActionData(convertMillisecondToDate(System.currentTimeMillis()), actString, ip, serverAction.getMessage(), null);
 			        		addRowLog(action);
-			        		writeLog(LOGCAT_PATH, action.toString(), true);
+			        		writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			        		disconnect();
 			        		break;
 			        	}
@@ -300,7 +313,7 @@ public class WatchClient {
 								}
 			                	System.out.println("sent action to server");
 			                	addRowLog(action);
-			                	writeLog(LOGCAT_PATH, action.toString(), true);
+			                	writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			                	
 			                	if (isParentWatching) {
 									// if this is parent renamed, interrupt current thread and start new thread with new path
@@ -324,7 +337,7 @@ public class WatchClient {
 										e.printStackTrace();
 									}
 				                	addRowLog(action);
-				                	writeLog(LOGCAT_PATH, action.toString(), true);
+				                	writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			                	}
 			                } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
 			                	if (isParentWatching == true) {
@@ -339,7 +352,7 @@ public class WatchClient {
 										e.printStackTrace();
 									}
 				                	addRowLog(action);
-				                	writeLog(LOGCAT_PATH, action.toString(), true);
+				                	writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			                	}
 			                	
 			                } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
@@ -355,7 +368,7 @@ public class WatchClient {
 										e.printStackTrace();
 									}
 				                	addRowLog(action);
-				                	writeLog(LOGCAT_PATH, action.toString(), true);
+				                	writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 			                	}
 			                	
 			                }

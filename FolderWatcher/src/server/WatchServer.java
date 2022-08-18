@@ -9,6 +9,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -67,7 +69,10 @@ public class WatchServer {
 	private JTree tree;
 	private JFrame folderFrame;
 	private JButton btnChange;
-	private static final String LOGCAT_PATH = "server_logcat.txt";
+	
+	//static final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+	private static final String LOGCAT_FILENAME = "server_logcat.txt";
+	private static final String LOGCAT_PARENT_PATH = System.getProperty("user.home") + "/FolderObserver/logcat/server/";
 	
 	//static ServerSocket variable
     private static ServerSocket server;
@@ -108,7 +113,7 @@ public class WatchServer {
 		            	folderHolder.put(clientIP, actionData.getFolderTree());
 		            	addRowLog(clientIP, createAt, action, message);
 		            	addRowClient(clientIP);
-		            	writeLog(LOGCAT_PATH, actionData.toString(), true);
+		            	writeLog(LOGCAT_PARENT_PATH, actionData.toString(), true);
 		            	// ClientData cData = new ClientData(message, clientIP);
 			            clientModel.addElement(clientIP);
 			          //create ObjectOutputStream object
@@ -137,19 +142,28 @@ public class WatchServer {
     
     private void readHistoriesLog() {
 		try {
-			InputStream bin = new FileInputStream(LOGCAT_PATH);
-			BufferedReader reader = new BufferedReader(new InputStreamReader(bin, "utf8"));
-			while (reader.ready()) {
-				String line = reader.readLine();
-				String[] messages = line.split(",");
-				if (messages.length == 4) {
-					addRowLog(messages[2], messages[0], messages[1],  messages[3]);
-				}
+			File parent = new File(LOGCAT_PARENT_PATH);
+			parent.mkdirs();
+			File f = new File(LOGCAT_PARENT_PATH + LOGCAT_FILENAME);
+			if (!f.exists()) {
+				f.createNewFile();
 			}
-			
-			reader.close();
-			bin.close();
-			
+			InputStream bin = new FileInputStream(LOGCAT_PARENT_PATH + LOGCAT_FILENAME);
+			if (bin != null) {
+				System.out.println("readHistoriesLog from " + bin.toString());
+				BufferedReader reader = new BufferedReader(new InputStreamReader(bin, "utf8"));
+				
+				while (reader.ready()) {
+					String line = reader.readLine();
+					String[] messages = line.split(",");
+					if (messages.length == 4) {
+						addRowLog(messages[2], messages[0], messages[1],  messages[3]);
+					}
+				}
+				
+				reader.close();
+				bin.close();
+			}
 		} catch(Exception e ) {
 			e.printStackTrace();
 		}
@@ -166,7 +180,7 @@ public class WatchServer {
 				case Action.LOGOUT: {
 	            	addRowLog(action.getClientIP(), action.getCreateAt(), kindAction, action.getMessage());
 	            	removeRowClient(clientIP);
-	            	writeLog(LOGCAT_PATH, action.toString(), true);
+	            	writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 	            	
 		            for (int i = 0; i < clientModel.getSize(); i++) {
 		            	if (clientModel.get(i).contains(clientIP)) {
@@ -181,7 +195,7 @@ public class WatchServer {
 			
 				default: {
 					addRowLog(action.getClientIP(), action.getCreateAt(), kindAction, action.getMessage());
-					writeLog(LOGCAT_PATH, action.toString(), true);
+					writeLog(LOGCAT_PARENT_PATH, action.toString(), true);
 					break;
 				}
 			}
@@ -259,13 +273,17 @@ public class WatchServer {
     
     private void writeLog(String filePath, String line, boolean isAppend) {
 		try {
-			FileWriter fw = new FileWriter(filePath, isAppend);
-			 
+			//PrintWriter writer = new PrintWriter(new File(loader.getResource(filePath).getFile()));
+			//writer.append(line);
+			//writer.append("\n");
+			//writer.close();
+			
+			FileWriter fw = new FileWriter(filePath + LOGCAT_FILENAME, isAppend);
 			fw.write(line);
 			fw.write("\n");
 			fw.close();
 			
-			System.out.println("wrote data to " + filePath);
+			System.out.println("wrote data to " + filePath + LOGCAT_FILENAME);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
